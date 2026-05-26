@@ -19,11 +19,11 @@ CREATE TABLE tb_veiculos (
 CREATE TABLE tb_pecas_upgrades (
     id_peca SERIAL PRIMARY KEY,
     nome_peca VARCHAR(100) NOT NULL,
-    categoria VARCHAR(50), -- Ex: Admissão, Escapamento, Eletrônica
+    categoria VARCHAR(50),
     preco DECIMAL(10, 2) NOT NULL
 );
 
--- 4. Tabela de Ordens de Serviço (OS)
+-- 4. Tabela de Ordens de Serviço 
 CREATE TABLE tb_ordem_servico (
     id_os SERIAL PRIMARY KEY,
     id_veiculo INT REFERENCES tb_veiculos(id_veiculo),
