@@ -1,39 +1,42 @@
+# 🚗 Arquitetura de Banco de Dados: OLTP e OLAP para Oficina de Performance
 
-# ⚙️ Dashboard Analítico - Oficina de Alta Performance
+Projeto desenvolvido como requisito acadêmico para o curso de Engenharia de Software da **UNIESP**. 
 
-Projeto desenvolvido para a disciplina de Banco de Dados/Engenharia de Dados do curso de Engenharia de Software da **UNIESP**.
+Este repositório contém a modelagem, criação e implementação de regras de negócio avançadas em um banco de dados relacional (PostgreSQL) para gerenciar uma oficina de *tuning* e upgrades automotivos. O projeto destaca a construção simultânea de um ambiente transacional (Produção) e um ambiente analítico (Data Warehouse), demonstrando a integração entre eles através de gatilhos (Triggers).
 
-Este projeto implementa uma solução completa de dados para uma oficina de tuning automotivo. Ele abrange desde a modelagem relacional do banco de dados (PostgreSQL) até a criação de uma camada analítica utilizando Views e JOINs complexos, culminando em um painel interativo desenvolvido em Python.
+## 🎯 Objetivos do Projeto
 
-## 🚀 Funcionalidades
-
-* **Modelagem de Dados:** Estrutura relacional contendo clientes, veículos, peças de performance (upgrades) e ordens de serviço.
-* **Camada Analítica (View):** Utilização de `JOINs` no banco de dados para pré-processar os dados transacionais em uma estrutura tabular otimizada para análise.
-* **Dashboard Interativo:** Interface web em Streamlit permitindo filtros dinâmicos por categoria de peça e pesquisa de texto livre.
-* **Exportação de Relatórios:** Geração e download nativo dos dados filtrados para o formato `.csv`.
+- **Modelagem Relacional (OLTP):** Garantir a integridade dos dados operacionais da oficina (Clientes, Veículos, Peças e Ordens de Serviço) através de chaves primárias e estrangeiras.
+- **Modelagem Dimensional (OLAP):** Criar um modelo Estrela (*Star Schema*) focado em análise de dados, utilizando tabelas Fato e Dimensões.
+- **Isolamento de Ambientes:** Separação lógica dos bancos de dados utilizando *Schemas* (`producao` e `dw`).
+- **Regras de Negócio no SGBD:** Transferir validações complexas para o banco de dados utilizando *Stored Procedures* e *Triggers*, garantindo segurança independente da aplicação que irá consumi-lo.
 
 ## 🛠️ Tecnologias Utilizadas
 
-* **Banco de Dados:** PostgreSQL (Scripts SQL, Views, JOINs).
-* **Linguagem:** Python 3.x
-* **Bibliotecas:**
-    * `streamlit` (Interface gráfica e interatividade web)
-    * `pandas` (Manipulação e estruturação dos dados)
-    * `psycopg2-binary` (Driver de conexão com o PostgreSQL)
+- **SGBD:** PostgreSQL
+- **Ferramentas:** pgAdmin / DBeaver
+- **Linguagem:** SQL (DDL, DML, DQL e PL/pgSQL)
 
-## 📋 Como rodar o projeto localmente
+## 🏗️ Estrutura e Funcionalidades
 
-### 1. Pré-requisitos
-* Ter o [Python](https://www.python.org/) instalado na máquina.
-* Ter o [PostgreSQL](https://www.postgresql.org/) e o pgAdmin instalados.
+O projeto foi dividido em duas grandes áreas lógicas:
 
-### 2. Configuração do Banco de Dados
-1. Crie um banco de dados no seu PostgreSQL.
-2. Execute o script de criação de tabelas e inserção de dados (DML e DDL).
-3. Execute o script de criação da View (`vw_relatorio_analise_upgrades`).
+### 1. Schema: `producao` (Sistema Transacional)
+Gerencia o dia a dia da oficina.
+* **Tabelas Normalizadas:** `tb_clientes`, `tb_veiculos`, `tb_pecas_upgrades`, `tb_ordem_servico`, `tb_itens_os`.
+* **Auditoria Contínua:** Implementação de uma **Trigger** (`trg_audita_preco`) que monitora a tabela de peças. Qualquer alteração de preço gera automaticamente um log histórico na tabela `tb_log_precos`.
+* **Validação de Processos:** Criação de uma **Stored Procedure** (`sp_finalizar_os`) responsável por mudar o status de uma Ordem de Serviço. Ela inclui uma regra de negócio estrita: a transação é abortada (Rollback) caso tente-se finalizar uma OS que não possua upgrades vinculados.
+* **Camada de Visualização:** Criação de uma **View** (`vw_relatorio_analise_upgrades`) que abstrai os múltiplos `JOINs` da produção para fornecer relatórios rápidos.
 
-### 3. Configuração da Aplicação Python
-Abra o terminal na pasta do projeto e instale as dependências:
+### 2. Schema: `dw` (Data Warehouse / Homologação)
+Estrutura otimizada para Business Intelligence.
+* **Modelo Estrela:** Composto pelas dimensões (`dim_tempo`, `dim_cliente`, `dim_veiculo`, `dim_peca`) e métricas (`fato_vendas_upgrades`).
+* **Integração e Sincronização:** Uma **Trigger de Integração** (`trg_sync_cliente_dw`) alocada na produção observa novos cadastros. Sempre que um cliente é registrado no sistema operacional, ele é automaticamente inserido na `dim_cliente` do Data Warehouse, gerando sua respectiva *Surrogate Key*.
+* **Extração de Dados:** Uso de uma **View de Extração** (`vw_extracao_dw`) que prepara os dados transacionais para o processo de ETL (Extract, Transform, Load).
 
-```bash
-pip install psycopg2-binary pandas streamlit
+## 🚀 Como executar este projeto
+
+1. **Pré-requisitos:** Ter o PostgreSQL instalado na sua máquina local ou em nuvem.
+2. **Criação do Banco:** Crie um banco de dados vazio (ex: `db_oficina_projeto`).
+3. **Execução do Script Principal:** Abra o arquivo `script_criacao.sql` (ou cole o código do repositório) no seu console SQL e execute. Ele criará os *schemas*, as tabelas, as *procedures*, *triggers*, *views* e fará a inserção dos dados de teste ("mock data").
+4. **Testando as Regras:** Utilize o arquivo `queries_teste.sql` para executar as chamadas de validação e verificar os logs e as sincronizações em tempo real.
